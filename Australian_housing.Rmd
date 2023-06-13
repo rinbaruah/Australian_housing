@@ -24,6 +24,7 @@ library(bookdown)
 library(stringr)
 library(stringi)
 library(lubridate)
+library(DT)
 ```
 
 # Checking the data quality
@@ -121,6 +122,18 @@ df_oz_clean$open_date <- if_else(df_oz_clean$open_date == "Added yesterday","1",
 df_oz_clean$open_date <- if_else(str_detect(df_oz_clean$open_date,"hour"),"0",df_oz_clean$open_date)
 df_oz_clean$open_date <-as.numeric(gsub("\\D", "", df_oz_clean$open_date))
 df_oz_clean$open_date <- (ymd(20221029) - days(df_oz_clean$open_date))
+
+```
+
+
+## Finalised clean data
+
+Here is a glimpse of the dataset after the completion of all the data cleaning operations.
+
+
+```{r clean-data}
+
+df_oz_clean %>% DT::datatable()
 
 ```
 
