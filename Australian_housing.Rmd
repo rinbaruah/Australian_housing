@@ -21,11 +21,12 @@ knitr::opts_chunk$set(echo = TRUE,
 library(tidyverse)
 library(naniar)
 library(bookdown)
+library(stringr)
+library(stringi)
+library(lubridate)
 ```
 
-
 # Checking the data quality
-
 
 One of the first steps we need to perform is to analyse the quality of the dataset.
 
@@ -46,15 +47,80 @@ For this purpose, we check the presence of null values in each of the variables 
 vis_miss(df_oz)
 
 ```
+
 As we can observe from figure \@ref(fig:nullheatmap),
 
-- There are no values of latitude and longitude in the dataset. Hence, these variables can be dropped.
-- There are fairly high number of missing values for the variables building size, land size, preferred size and open date. These will not be dropped but care must be taken while using these variables.
-- Remaining variables have very low number of missing values. Hence, they can be used for our analysis without much concern. 
+-   There are no values of latitude and longitude in the dataset. Hence, these variables can be dropped.
+-   There are fairly high number of missing values for the variables building size, land size, preferred size and open date. These will not be dropped but care must be taken while using these variables.
+-   Remaining variables have very low number of missing values. Hence, they can be used for our analysis without much concern.
+
+# Data cleaning
+
+The next step is to clean the dataset and make it ready for analysis.
 
 ## Feature selection
 
 In this step, we will be retaining the important variables which could yield important results in our analysis. Variables falling under the following categories will be removed from the dataset:
 
-- Variables which do not contribute any meaningful insights.
-- Variables with high number of null values.
+-   Variables which do not contribute any meaningful insights. (index, TID, breadcrumb,phone,product_depth)
+-   Variables with high number of null values. (latitude, longitude)
+-   Redundant columns which contain the same data. (Price and location_name variables contain the same data, which is the price of the property. Hence, location_name will be removed.)
+
+```{r feature-selection}
+
+remove_variables <- c("index","TID","breadcrumb","phone","product_depth","latitude","longitude","location_name","address","RunDate","category_name")
+df_oz_clean <- df_oz %>% select(-remove_variables)
+```
+
+## Building land and preferrezed size
+
+The various variables related to property and land sizes will be cleaned to cast them into numerical variable types.
+
+```{r size-num}
+
+df_oz_clean$building_size <-as.numeric((gsub("([0-9]+).*$", "\\1", df_oz_clean$building_size)))
+df_oz_clean$land_size <-as.numeric((gsub("([0-9]+).*$", "\\1", df_oz_clean$land_size)))
+df_oz_clean$preferred_size <-as.numeric((gsub("([0-9]+).*$", "\\1", df_oz_clean$preferred_size)))
+
+```
+
+## Price
+
+The price variable will be converted to a numerical variable from the current character variable.
+
+```{r price}
+
+df_oz_clean$price <-as.numeric(gsub("\\D", "", df_oz_clean$price))
+
+
+```
+
+## Address
+
+As the exact unit address does not provide us with any additional data, hence we shall simply retain the street address.
+
+```{r address}
+df_oz_clean$address_1 <-as.character(gsub("[^a-zA-Z]", " ", df_oz_clean$address_1))
+stop_words <- c("Lot","Unit","UNIT")
+df_oz_clean$address_1 <- str_remove(df_oz_clean$address_1, "Lot")
+df_oz_clean$address_1 <- str_remove(df_oz_clean$address_1, "UNIT")
+df_oz_clean$address_1 <- str_remove(df_oz_clean$address_1, "Unit")
+df_oz_clean$address_1 <- str_squish(df_oz_clean$address_1)
+
+df_oz_clean <- df_oz_clean %>% rename( "street_address" =  "address_1")
+
+```
+
+## Open date
+
+We will try to clean the variable by changing the variable to date type. For this purpose, a reference date of 29th November, 2022 (Date of dataset upload on Kaggle) has been chosen.
+
+```{r open-date}
+
+df_oz_clean$open_date <- if_else(df_oz_clean$open_date == "Added yesterday","1",df_oz_clean$open_date)
+df_oz_clean$open_date <- if_else(str_detect(df_oz_clean$open_date,"hour"),"0",df_oz_clean$open_date)
+df_oz_clean$open_date <-as.numeric(gsub("\\D", "", df_oz_clean$open_date))
+df_oz_clean$open_date <- (ymd(20221029) - days(df_oz_clean$open_date))
+
+```
+

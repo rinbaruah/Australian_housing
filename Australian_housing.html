@@ -1482,12 +1482,31 @@ border-radius: 0px;
 
 <pre class="r"><code>library(tidyverse)
 library(naniar)
-library(bookdown)</code></pre>
+library(bookdown)
+library(stringr)
+library(stringi)
+library(lubridate)</code></pre>
 <div id="checking-the-data-quality" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Checking the data quality</h1>
 <p>One of the first steps we need to perform is to analyse the quality of the dataset.</p>
 <p>First, we read in the dataset</p>
-<pre class="r"><code>df_oz &lt;- read_csv(&quot;data/RealEstateAU_1000_Samples.csv&quot;)</code></pre>
+<pre class="r"><code>df_oz &lt;- read_csv(&quot;data/RealEstateAU_1000_Samples.csv&quot;)
+head(df_oz)</code></pre>
+<pre><code>## # A tibble: 6 × 27
+##   index     TID breadcrumb   category_name property_type building_size land_size
+##   &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;         &lt;chr&gt;         &lt;chr&gt;         &lt;chr&gt;    
+## 1     0 1350988 Buy&gt;NT&gt;DARW… Real Estate … House         &lt;NA&gt;          &lt;NA&gt;     
+## 2     1 1350989 Buy&gt;NT&gt;DARW… Real Estate … Apartment     171m²         &lt;NA&gt;     
+## 3     2 1350990 Buy&gt;NT&gt;DARW… Real Estate … Unit          &lt;NA&gt;          &lt;NA&gt;     
+## 4     3 1350991 Buy&gt;NT&gt;DARW… Real Estate … House         &lt;NA&gt;          &lt;NA&gt;     
+## 5     4 1350992 Buy&gt;NT&gt;DARW… Real Estate … Unit          201m²         &lt;NA&gt;     
+## 6     5 1350993 Buy&gt;NT&gt;DARW… Real Estate … Apartment     218m²         &lt;NA&gt;     
+## # ℹ 20 more variables: preferred_size &lt;chr&gt;, open_date &lt;chr&gt;,
+## #   listing_agency &lt;chr&gt;, price &lt;chr&gt;, location_number &lt;dbl&gt;,
+## #   location_type &lt;chr&gt;, location_name &lt;chr&gt;, address &lt;chr&gt;, address_1 &lt;chr&gt;,
+## #   city &lt;chr&gt;, state &lt;chr&gt;, zip_code &lt;dbl&gt;, phone &lt;chr&gt;, latitude &lt;lgl&gt;,
+## #   longitude &lt;lgl&gt;, product_depth &lt;chr&gt;, bedroom_count &lt;dbl&gt;,
+## #   bathroom_count &lt;dbl&gt;, parking_count &lt;dbl&gt;, RunDate &lt;dttm&gt;</code></pre>
 <div id="check-for-null-values" class="section level2" number="1.1">
 <h2><span class="header-section-number">1.1</span> Check for null values</h2>
 <p>For this purpose, we check the presence of null values in each of the variables using a heatmap.</p>
@@ -1504,6 +1523,53 @@ Figure 1.1: Heat map for null values
 <li>There are fairly high number of missing values for the variables building size, land size, preferred size and open date. These will not be dropped but care must be taken while using these variables.</li>
 <li>Remaining variables have very low number of missing values. Hence, they can be used for our analysis without much concern.</li>
 </ul>
+</div>
+</div>
+<div id="data-cleaning" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Data cleaning</h1>
+<p>The next step is to clean the dataset and make it ready for analysis.</p>
+<div id="feature-selection" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Feature selection</h2>
+<p>In this step, we will be retaining the important variables which could yield important results in our analysis. Variables falling under the following categories will be removed from the dataset:</p>
+<ul>
+<li>Variables which do not contribute any meaningful insights. (index, TID, breadcrumb,phone,product_depth)</li>
+<li>Variables with high number of null values. (latitude, longitude)</li>
+<li>Redundant columns which contain the same data. (Price and location_name variables contain the same data, which is the price of the property. Hence, location_name will be removed.)</li>
+</ul>
+<pre class="r"><code>remove_variables &lt;- c(&quot;index&quot;,&quot;TID&quot;,&quot;breadcrumb&quot;,&quot;phone&quot;,&quot;product_depth&quot;,&quot;latitude&quot;,&quot;longitude&quot;,&quot;location_name&quot;,&quot;address&quot;,&quot;RunDate&quot;,&quot;category_name&quot;)
+df_oz_clean &lt;- df_oz %&gt;% select(-remove_variables)</code></pre>
+</div>
+<div id="building-land-and-preferrezed-size" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Building land and preferrezed size</h2>
+<p>The various variables related to property and land sizes will be cleaned to cast them into numerical variable types.</p>
+<pre class="r"><code>df_oz_clean$building_size &lt;-as.numeric((gsub(&quot;([0-9]+).*$&quot;, &quot;\\1&quot;, df_oz_clean$building_size)))
+df_oz_clean$land_size &lt;-as.numeric((gsub(&quot;([0-9]+).*$&quot;, &quot;\\1&quot;, df_oz_clean$land_size)))
+df_oz_clean$preferred_size &lt;-as.numeric((gsub(&quot;([0-9]+).*$&quot;, &quot;\\1&quot;, df_oz_clean$preferred_size)))</code></pre>
+</div>
+<div id="price" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Price</h2>
+<p>The price variable will be converted to a numerical variable from the current character variable.</p>
+<pre class="r"><code>df_oz_clean$price &lt;-as.numeric(gsub(&quot;\\D&quot;, &quot;&quot;, df_oz_clean$price))</code></pre>
+</div>
+<div id="address" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> Address</h2>
+<p>As the exact unit address does not provide us with any additional data, hence we shall simply retain the street address.</p>
+<pre class="r"><code>df_oz_clean$address_1 &lt;-as.character(gsub(&quot;[^a-zA-Z]&quot;, &quot; &quot;, df_oz_clean$address_1))
+stop_words &lt;- c(&quot;Lot&quot;,&quot;Unit&quot;,&quot;UNIT&quot;)
+df_oz_clean$address_1 &lt;- str_remove(df_oz_clean$address_1, &quot;Lot&quot;)
+df_oz_clean$address_1 &lt;- str_remove(df_oz_clean$address_1, &quot;UNIT&quot;)
+df_oz_clean$address_1 &lt;- str_remove(df_oz_clean$address_1, &quot;Unit&quot;)
+df_oz_clean$address_1 &lt;- str_squish(df_oz_clean$address_1)
+
+df_oz_clean &lt;- df_oz_clean %&gt;% rename( &quot;street_address&quot; =  &quot;address_1&quot;)</code></pre>
+</div>
+<div id="open-date" class="section level2" number="2.5">
+<h2><span class="header-section-number">2.5</span> Open date</h2>
+<p>We will try to clean the variable by changing the variable to date type. For this purpose, a reference date of 29th November, 2022 (Date of dataset upload on Kaggle) has been chosen.</p>
+<pre class="r"><code>df_oz_clean$open_date &lt;- if_else(df_oz_clean$open_date == &quot;Added yesterday&quot;,&quot;1&quot;,df_oz_clean$open_date)
+df_oz_clean$open_date &lt;- if_else(str_detect(df_oz_clean$open_date,&quot;hour&quot;),&quot;0&quot;,df_oz_clean$open_date)
+df_oz_clean$open_date &lt;-as.numeric(gsub(&quot;\\D&quot;, &quot;&quot;, df_oz_clean$open_date))
+df_oz_clean$open_date &lt;- (ymd(20221029) - days(df_oz_clean$open_date))</code></pre>
 </div>
 </div>
 
