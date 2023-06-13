@@ -1,0 +1,52 @@
+---
+title: "Australian housing"
+author: "Arindam Baruah"
+date: "2023-06-13"
+output:
+  bookdown::html_document2:
+   
+    css: CSSBackground.css
+    toc: true
+    toc_float: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(naniar)
+library(bookdown)
+```
+
+
+# Checking the data quality
+
+
+One of the first steps we need to perform is to analyse the quality of the dataset.
+
+First, we read in the dataset
+
+```{r read-data}
+
+df_oz <- read_csv("data/RealEstateAU_1000_Samples.csv")
+```
+
+## Check for null values
+
+For this purpose, we check the presence of null values in each of the variables using a heatmap.
+
+```{r nullheatmap, fig.cap="Heat map for null values",fig.align='center'}
+
+vis_miss(df_oz)
+
+```
+As we can observe from figure \@ref(fig:nullheatmap),
+
+- There are no values of latitude and longitude in the dataset. Hence, these variables can be dropped.
+- There are fairly high number of missing values for the variables building size, land size, preferred size and open date. These will not be dropped but care must be taken while using these variables.
+- Remaining variables have very low number of missing values. Hence, they can be used for our analysis without much concern. 
