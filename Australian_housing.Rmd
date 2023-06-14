@@ -25,6 +25,7 @@ library(stringr)
 library(stringi)
 library(lubridate)
 library(DT)
+library(forcats)
 ```
 
 # Checking the data quality
@@ -69,7 +70,7 @@ In this step, we will be retaining the important variables which could yield imp
 
 ```{r feature-selection}
 
-remove_variables <- c("index","TID","breadcrumb","phone","product_depth","latitude","longitude","location_name","address","RunDate","category_name")
+remove_variables <- c("index","TID","breadcrumb","phone","product_depth","latitude","longitude","location_name","address","RunDate","category_name","location_type")
 df_oz_clean <- df_oz %>% select(-remove_variables)
 ```
 
@@ -136,4 +137,25 @@ Here is a glimpse of the dataset after the completion of all the data cleaning o
 df_oz_clean %>% DT::datatable()
 
 ```
+# Exploratory Data analysis
+
+In the next step, we will try to visualise the data through relevant plots and attempt to understand how each of these variables maybe correlated to the price of the property.
+
+## Property type
+
+Let us visualise the number of available properties by its type.
+
+```{r property-type, fig.cap="Distribution of property types up for sale",fig.align='center'}
+
+df_oz_type_group <- df_oz_clean %>% count(property_type)
+
+pl1 <- ggplot(data = df_oz_type_group,aes(x = reorder(property_type,-n),y = n,fill = property_type)) +
+                                   geom_col(color = 'black') + geom_label(aes(label = n),nudge_y =20) + labs(x = "Property type",y =" Number of available properties") + ggtitle("Available properties for sale") +        theme_classic() +
+                                   theme(axis.text.x = element_text(angle =10, size = 6), plot.title = element_text(hjust = 0.5),legend.position = "None") +
+                                   scale_fill_brewer(palette = "Paired") 
+pl1
+
+
+```
+Figure \@ref(fig:property-type) illustrates that __houses are the most abundantly available in the market with 441 listed properties followed by units at 230 listings and then apartments with 212 listings. The __remaining property types are observed to constitute a small portion of the available listings__.
 
