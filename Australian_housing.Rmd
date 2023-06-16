@@ -26,6 +26,7 @@ library(stringi)
 library(lubridate)
 library(DT)
 library(forcats)
+library(ggthemes)
 ```
 
 # Checking the data quality
@@ -175,7 +176,7 @@ outlier <-  1.5* IQR(df_oz_clean$price, na.rm =TRUE) + quantile(df_oz_clean$pric
 df_oz_clean <- df_oz_clean %>% mutate(new_price = if_else(price >= outlier, NA, price ))
 ```
 
-After removing the outlier, let us try to visualise the plot for prices against property types.
+After removing the outliers, let us try to visualise the plot for prices against property types.
 
 ```{r box-plot, fig.cap="Median prices for each property type",fig.align='center'}
 
@@ -184,7 +185,7 @@ pl3 <-
   ggplot(
     data = df_oz_clean,
     aes(x = factor(property_type,level = level_order), y = new_price, fill = property_type)) + geom_boxplot() + labs(x = "Property type", 
-                                                                    y =" Number of available properties") + ggtitle("Price dsitribution of properties") +        theme_classic() +
+                                                                    y ="Price of property ($0") + ggtitle("Price dsitribution of properties") +        theme_classic() +
       theme(
         axis.text.x = element_text(angle = 10, size = 6),
         plot.title = element_text(hjust = 0.5),
@@ -196,3 +197,29 @@ pl3
 
 ```
 Figure \@ref(fig:box-plot) illustrates the distributions of the prices for each of the property types. We can observe that Acreage properties have the highest median price while studio property types cost the least. There is a high variability observed in the reported prices for Townhouses as can be observed through the large interquartile range.
+
+
+# Bedroom availability
+
+Let us look into the prices of the properties based on the number of bedrooms available in each property.
+
+```{r bed-count,fig.cap="Number of properties for each bedroom count",fig.align='center'}
+
+df_group_bedrooms <- df_oz_clean %>% count(bedroom_count)
+pl4 <- ggplot(data = df_group_bedrooms, aes(x = bedroom_count,y = n)) + geom_col(color = 'black',aes(fill = factor(bedroom_count))) + scale_x_continuous(breaks = c(0:max(df_oz_clean$bedroom_count,na.rm = TRUE))) + geom_label(aes(label = n),nudge_y =20) + labs(x = "Number of bedrooms",y =" Number of available properties") + ggtitle("Available properties for sale") +        theme_classic() +
+                                   theme(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5),legend.position = "None") +
+                                   scale_fill_brewer(palette = "Pastel1") 
+pl4
+```
+As we can observe from figure \@ref(fig:bed-count), __properties with 3 bedrooms are the most available for sale followed by properties with 2 bedrooms and then subsequently, properties with 4 bedrooms__.
+
+Let us now check how do the prices differ for each bedroom count.
+
+```{r price-bedroom, fig.cap="Prices of properties for each bedroom count",fig.align='center'}
+
+levels <- c(0,1,2,3,4,5,6)
+
+pl5 <- ggplot(data = df_oz_clean , aes(x = factor(bedroom_count,levels = levels),y = new_price)) + geom_boxplot(aes(fill = factor(bedroom_count))) + labs(x ="Bedroom count",y = "Price of property ($)") + theme_economist()+ theme(legend.position = 'none') + ggtitle("Prices of properties for each bedroom count") 
+pl5
+```
+As we can observe through figure \@ref(fig:price-bedroom), there is a steady rise in the median prices of the properties with higher counts of bedrooms. Hence, __more number of bedrooms can be associated with a higher price tag of the property.__
