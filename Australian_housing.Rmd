@@ -152,10 +152,47 @@ df_oz_type_group <- df_oz_clean %>% count(property_type)
 pl1 <- ggplot(data = df_oz_type_group,aes(x = reorder(property_type,-n),y = n,fill = property_type)) +
                                    geom_col(color = 'black') + geom_label(aes(label = n),nudge_y =20) + labs(x = "Property type",y =" Number of available properties") + ggtitle("Available properties for sale") +        theme_classic() +
                                    theme(axis.text.x = element_text(angle =10, size = 6), plot.title = element_text(hjust = 0.5),legend.position = "None") +
-                                   scale_fill_brewer(palette = "Paired") 
+                                   scale_fill_brewer(palette = "Pastel1") 
 pl1
 
 
 ```
-Figure \@ref(fig:property-type) illustrates that __houses are the most abundantly available in the market with 441 listed properties followed by units at 230 listings and then apartments with 212 listings. The __remaining property types are observed to constitute a small portion of the available listings__.
+Figure \@ref(fig:property-type) illustrates that __houses are the most abundantly available in the market with 441 listed properties followed by units at 230 listings and then apartments with 212 listings. The remaining property types are observed to constitute a small portion of the available listings__.
 
+Let us now observe how do the prices of these properties differ for each of the property types.
+
+```{r fig-box,fig.align='center',fig.cap="Presence of outlier values in property type"}
+pl2 <- ggplot(data = df_oz_clean, aes(x = property_type,y = price)) + geom_boxplot()
+pl2
+
+```
+
+As we can observe from figure \@ref(fig:fig-box), there is a presence of an outlier value which has completely skewed the distribution of the variables. We will replace this outlier value with a null and create a new plot for to analyse the prices for each property types.
+
+```{r outlier-removal}
+
+outlier <-  1.5* IQR(df_oz_clean$price, na.rm =TRUE) + quantile(df_oz_clean$price,0.75,na.rm = TRUE)
+df_oz_clean <- df_oz_clean %>% mutate(new_price = if_else(price >= outlier, NA, price ))
+```
+
+After removing the outlier, let us try to visualise the plot for prices against property types.
+
+```{r box-plot, fig.cap="Median prices for each property type",fig.align='center'}
+
+level_order <- c("Acreage","Other","House","Townhouse","Villa","Apartment","Unit","Studio","Duplex/Semi-detached")
+pl3 <-
+  ggplot(
+    data = df_oz_clean,
+    aes(x = factor(property_type,level = level_order), y = new_price, fill = property_type)) + geom_boxplot() + labs(x = "Property type", 
+                                                                    y =" Number of available properties") + ggtitle("Price dsitribution of properties") +        theme_classic() +
+      theme(
+        axis.text.x = element_text(angle = 10, size = 6),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "None"
+      ) +
+      scale_fill_brewer(palette = "Set2") 
+pl3
+
+
+```
+Figure \@ref(fig:box-plot) illustrates the distributions of the prices for each of the property types. We can observe that Acreage properties have the highest median price while studio property types cost the least. There is a high variability observed in the reported prices for Townhouses as can be observed through the large interquartile range.
