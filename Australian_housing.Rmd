@@ -27,6 +27,7 @@ library(lubridate)
 library(DT)
 library(forcats)
 library(ggthemes)
+library(ggpubr)
 ```
 
 # Checking the data quality
@@ -237,4 +238,82 @@ pl4 <- ggplot(data = df_group_bathrooms, aes(x = bathroom_count,y = n)) + geom_c
 pl4
 ```
 
-As we can observe from figure \@ref(fig:bath-count), most properties which are up for sale have either 1 or 2 bathrooms. Majority of the properties have 2 bathrooms with 563 listings followed by 1 bathroom with 336 listings. Properties with bathrooms higher than 2 constitute a small portion of the
+As we can observe from figure \@ref(fig:bath-count), most properties which are up for sale have either 1 or 2 bathrooms. Majority of the properties have 2 bathrooms with 563 listings followed by 1 bathroom with 336 listings. Properties with bathrooms higher than 2 constitute a small portion of the total available listings.
+
+Let us now visualise how do the prices for the properties vary with higher bathroom counts.
+
+```{r bath-count-box, fig.cap="Prices of properties for each bathroom count", fig.align='center'}
+
+levels <- c(0,1,2,3,4)
+
+pl6 <- ggplot(data = df_oz_clean , aes(x = factor(bathroom_count,levels = levels),y = new_price)) + geom_boxplot(aes(fill = factor(bathroom_count))) + labs(x ="Bathroom count",y = "Price of property ($)") + theme_classic()+ theme(legend.position = 'none') + ggtitle("Prices of properties for each bathroom count") + scale_fill_brewer(palette = "RdYlBu")
+pl6
+
+
+```
+
+Similar to what was observed for the relation between prices of bedrooms and the property, the properties associated with __higher bathroom counts are also observed to report higher property prices"__.
+
+# Parking space count
+
+Another important factor to consider is the parking space associated for each of these properties. Let us now visualise the distribution of these parking spaces.
+
+
+```{r park-count,fig.cap="Number of properties for each parking space count",fig.align='center'}
+
+df_group_park <- df_oz_clean %>% count(parking_count)
+
+pl7 <- ggplot(data = df_group_park, aes(x = parking_count,y = n)) + geom_col(color = 'black',aes(fill = factor(parking_count))) + scale_x_continuous(breaks = c(0:max(df_oz_clean$parking_count,na.rm = TRUE))) + geom_label(aes(label = n),nudge_y = 30) + labs(x = "Number of parking spaces",y =" Number of available properties") + ggtitle("Available properties for sale") +        theme_classic() +
+                                   theme(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5),legend.position = "None") +
+                                   scale_fill_brewer(palette = "Set3") 
+pl7
+  
+```
+
+As illustrated by figure \@ref(fig:park-count), properties with 2 parking space counts are the most widely available among the listings. Properties with parking space counts higher than 2 constitute a small part of the entire population of listings.
+
+However, as we can observe, since there are no properties with parking spaces of 9 and 11, they do not appear in the barplot. We use an alternative dot chart (or lollipop chart) to visualise the same data as illustrated by \@ref(fig:dot-chart)
+
+
+```{r dot-chart,fig.cap="Number of properties for each parking space count",fig.align='center'}
+
+level_orders <- c(0:12)
+
+data_group_park_new <- data.frame()
+
+data_group_park_new<- as.data.frame(c(0:12))
+data_group_park_new <- data_group_park_new %>% rename("Parking_count" = "c(0:12)")
+
+data_group_park_new <- data_group_park_new %>% left_join(df_group_park, by = c("Parking_count" = "parking_count"))
+data_group_park_new$n <- data_group_park_new$n %>% replace_na(0)
+
+ggdotchart(data_group_park_new, x = "Parking_count", 
+           y = "n",
+           color = "Parking_count",                       
+           add = "segments",
+           add.params = list(color = "lightgray", size = 2),                             
+           dot.size = 8,
+           rotate=TRUE,
+           group = "Parking_count",                                
+           label = round(data_group_park_new$n,1),                        
+           font.label = list(color = "black", size = 9, 
+                             vjust = -3, face = 'bold'),               
+           ggtheme = theme_pubr()                        
+           ) + theme(legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = 2, color = "lightgray") + labs(y = "Number of properties", x= "Parking space count") + ggtitle("Available properties for sale")
+```
+
+
+We shall now visualise how do the prices of the properties differ with an increase in parking space count.
+
+```{r park-count-box, fig.cap="Prices of properties for each parking space count", fig.align='center'}
+
+levels <- c(0,1,2,3,4)
+
+pl8 <- ggplot(data = df_oz_clean , aes(x = factor(parking_count),y = new_price)) + geom_boxplot(aes(fill = factor(parking_count))) + labs(x ="Parking space count",y = "Price of property ($)") + theme_classic()+ theme(legend.position = 'none') + ggtitle("Prices of properties for each parking space count") + scale_fill_brewer(palette = "Dark2")
+pl8
+
+
+```
+
+As illustrated by figure \@ref(fig:park-count-box), __there is a gradual increase in the median prices of the properties as the available parking space counts increase__. However, there appears to be an outlier in the above analysis as the property with parking space counts of 12 are observed to report lower price as compared to properties with lower values of parking space counts. However, this could be attributed to the low population of properties with 12 parking space counts.
