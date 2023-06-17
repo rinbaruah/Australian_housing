@@ -223,3 +223,18 @@ pl5 <- ggplot(data = df_oz_clean , aes(x = factor(bedroom_count,levels = levels)
 pl5
 ```
 As we can observe through figure \@ref(fig:price-bedroom), there is a steady rise in the median prices of the properties with higher counts of bedrooms. Hence, __more number of bedrooms can be associated with a higher price tag of the property.__
+
+# Bathroom availability
+
+Let us now look into the prices of the properties based on the number of bathrooms available in each property.
+
+```{r bath-count,fig.cap="Number of properties for each bathroom count",fig.align='center'}
+
+df_group_bathrooms <- df_oz_clean %>% count(bathroom_count)
+pl4 <- ggplot(data = df_group_bathrooms, aes(x = bathroom_count,y = n)) + geom_col(color = 'black',aes(fill = factor(bathroom_count))) + scale_x_continuous(breaks = c(0:max(df_oz_clean$bathroom_count,na.rm = TRUE))) + geom_label(aes(label = n),nudge_y = 30) + labs(x = "Number of bathrooms",y =" Number of available properties") + ggtitle("Available properties for sale") +        theme_classic() +
+                                   theme(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5),legend.position = "None") +
+                                   scale_fill_brewer(palette = "Set3") 
+pl4
+```
+
+As we can observe from figure \@ref(fig:bath-count), most properties which are up for sale have either 1 or 2 bathrooms. Majority of the properties have 2 bathrooms with 563 listings followed by 1 bathroom with 336 listings. Properties with bathrooms higher than 2 constitute a small portion of the
