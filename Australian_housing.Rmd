@@ -28,6 +28,9 @@ library(DT)
 library(forcats)
 library(ggthemes)
 library(ggpubr)
+library(corrplot)
+library(mltools)
+library(data.table)
 ```
 
 # Checking the data quality
@@ -164,7 +167,14 @@ Figure \@ref(fig:property-type) illustrates that __houses are the most abundantl
 Let us now observe how do the prices of these properties differ for each of the property types.
 
 ```{r fig-box,fig.align='center',fig.cap="Presence of outlier values in property type"}
-pl2 <- ggplot(data = df_oz_clean, aes(x = property_type,y = price)) + geom_boxplot()
+pl2 <- ggplot(data = df_oz_clean, aes(x = property_type,y = price)) + geom_boxplot() +   annotate("segment",x = "House",
+    y = 4.5e+13,xend = "House" ,
+    yend = 4.8e+13 ,arrow = arrow(type = "closed", 
+                              length = unit(0.02, "npc"))
+  ) +
+  annotate("text",x = "House",
+    y = 4.2e+13,colour = "red",
+    label = 'Presence of outlier value',size = unit(3, "pt")) + theme(axis.text.x = element_text(angle = 10,face = 'bold')) + labs(x= "Propety type", y=" Price of property ($)")
 pl2
 
 ```
@@ -317,3 +327,44 @@ pl8
 ```
 
 As illustrated by figure \@ref(fig:park-count-box), __there is a gradual increase in the median prices of the properties as the available parking space counts increase__. However, there appears to be an outlier in the above analysis as the property with parking space counts of 12 are observed to report lower price as compared to properties with lower values of parking space counts. However, this could be attributed to the low population of properties with 12 parking space counts.
+
+# Correlation plot
+
+After performing a detailed exploratory data analysis, let us study how each of these variables correlate to the prices for the housing properties. This can be visualised by using a correlation plot.
+
+```{r corr-plot}
+
+
+df_oz_num <- df_oz_clean %>% select(c("property_type","building_size","land_size","preferred_size","bedroom_count","bathroom_count","parking_count","new_price"))
+df_oz_num$property_type <- factor(df_oz_num$property_type)
+
+df_oz_num <- df_oz_num %>% mutate(property_type_coded = case_match(property_type,
+                                                                                 "House"~1,
+                                                                                 "Apartment"~2,
+                                                                                 "Unit" ~ 3,
+                                                                                 "Studio"~4,
+                                                                                 "Residential Land"~5,
+                                                                                 "Block Of Units"~6,
+                                                                                 "Townhouse"~7,
+                                                                                 "Acreage"~8,
+                                                                                 "Duplex/Semi-detached"~9,
+                                                                                 "Other"~10,
+                                                                                 "Villa"~11,
+                                                                                 "Warehouse"~12,
+                                                                                 "Lifestyle"~13
+                                                                                 ))
+
+df_oz_num <- df_oz_num %>%  select(c("bedroom_count","bathroom_count","parking_count","property_type_coded","new_price")) %>% drop_na()
+
+
+corrplot(cor(df_oz_num),        # Correlation matrix
+         method = "number", # Correlation plot method
+         type = "full",    # Correlation plot style (also "upper" and "lower")
+         diag = TRUE,      # If TRUE (default), adds the diagonal
+         tl.col = "black", # Labels color
+         bg = "white",     # Background color
+         title = "",       # Main title
+         col = NULL)
+
+```
+As we can observe from the correlation plot, there is __about 56% correlation between the number of bedrooms and the price of the property, followed by bathroom counts with 48% correlation and 32% for parking count.__
